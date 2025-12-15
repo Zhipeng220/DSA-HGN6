@@ -1,0 +1,17 @@
+[12.15.25|19:23:06] [DATA] Train stats loaded from Bone stream.
+[12.15.25|19:23:06] [DATA] Injected train stats into test feeder.
+[12.15.25|19:23:06] Parameters:
+{'work_dir': './work_dir/SHREC/joint_v2', 'config': 'config/SHREC/joint/joint.yaml', 'phase': 'train', 'save_result': True, 'start_epoch': 0, 'num_epoch': 150, 'use_gpu': True, 'device': [0], 'log_interval': 100, 'save_interval': 5, 'eval_interval': 5, 'save_log': True, 'print_log': True, 'pavi_log': False, 'train_feeder': 'feeder.feeder_egogesture.Feeder', 'test_feeder': 'feeder.feeder_egogesture.Feeder', 'num_worker': 4, 'train_feeder_args': {'data_path': '/Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy', 'label_path': '/Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl', 'split': 'train', 'bone': False, 'vel': False, 'window_size': 180, 'normalization': True, 'random_choose': True, 'random_move': True, 'random_shift': True, 'random_rot': True, 'shear_amplitude': 0.5, 'temperal_padding_ratio': 6, 'repeat': 5, 'debug': False, 'use_mmap': True}, 'test_feeder_args': {'data_path': '/Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy', 'label_path': '/Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl', 'split': 'test', 'bone': False, 'vel': False, 'window_size': 180, 'normalization': True, 'debug': False, 'use_mmap': True}, 'batch_size': 32, 'test_batch_size': 32, 'debug': False, 'model': 'net.dsa_hgn.Model', 'model_args': {'in_channels': 3, 'num_class': 14, 'num_point': 22, 'num_person': 1, 'drop_out': 0.0, 'graph': 'graph.shrec.Graph', 'graph_args': {'labeling_mode': 'spatial'}, 'base_channels': 64, 'num_stages': 10, 'adaptive': True, 'num_hyperedges': 16, 'use_virtual_conn': True}, 'weights': None, 'ignore_weights': [], 'loss': 'torch.nn.CrossEntropyLoss', 'loss_args': {}, 'optimizer': 'SGD', 'optimizer_args': {}, 'base_lr': 0.05, 'step': [70, 100], 'lr_decay_rate': 0.1, 'warm_up_epoch': 5, 'nesterov': True, 'weight_decay': 0.0005, 'teacher_weights': None, 'lambda_kd': 0.3, 'lambda_entropy': 0.001, 'lambda_ortho': 0.1, 'grad_clip_norm': 1.0, 'show_topk': [1, 5], 'stream': 'joint'}
+
+[12.15.25|19:23:06] ---------- Networks initialized -------------
+[12.15.25|19:23:06] [Network] Total number of parameters : 1.920 M
+[12.15.25|19:23:06] -----------------------------------------------
+[12.15.25|19:23:06] Training epoch: 1
+[12.15.25|19:23:21] 	Iter 0 Done. | loss: 8.9689 | loss_ce: 8.6710 | loss_kd: 0.0000 | loss_ent: 55.3470 | loss_orth: 2.4255 | lr: 0.020000
+[12.15.25|19:26:16] 	Iter 100 Done. | loss: 3.9958 | loss_ce: 3.6980 | loss_kd: 0.0000 | loss_ent: 55.3487 | loss_orth: 2.4246 | lr: 0.020000
+[12.15.25|19:29:08] 	Iter 200 Done. | loss: 3.5885 | loss_ce: 3.2908 | loss_kd: 0.0000 | loss_ent: 55.3513 | loss_orth: 2.4230 | lr: 0.020000
+[12.15.25|19:31:57] 	Iter 300 Done. | loss: 2.9073 | loss_ce: 2.6099 | loss_kd: 0.0000 | loss_ent: 55.3530 | loss_orth: 2.4209 | lr: 0.020000
+[12.15.25|19:32:25] 	mean_loss: 3.9070614864623625
+[12.15.25|19:32:25] Training epoch: 2
+[12.15.25|19:35:20] 	Iter 400 Done. | loss: 2.9913 | loss_ce: 2.6942 | loss_kd: 0.0000 | loss_ent: 55.3555 | loss_orth: 2.4177 | lr: 0.030000
+[12.15.25|19:38:20] 	Iter 500 Done. | loss: 3.1627 | loss_ce: 2.8660 | loss_kd: 0.0000 | loss_ent: 55.3585 | loss_orth: 2.4137 | lr: 0.030000

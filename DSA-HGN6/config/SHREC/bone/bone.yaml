@@ -1,0 +1,152 @@
+# ==============================================================================
+# DSA-HGN V5: Physical-Informed Hypergraph + Cross-Stream Knowledge Distillation
+# ==============================================================================
+
+work_dir: ./work_dir/SHREC/bone_v5_kd
+
+# 1. 训练流设置
+stream: bone
+phase: train
+
+# 2. 模型定义
+model: net.dsa_hgn.Model
+model_args:
+  # 基础参数
+  in_channels: 3              # Bone流是3D向量 (x, y, z)
+  num_class: 14               # SHREC 14个手势类别
+  num_point: 22               # SHREC 22个关节点
+  num_person: 1               # 单人手势
+  drop_out: 0.0               # 可选：0.25增加正则化
+
+  # 图结构
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+
+  # 网络架构
+  base_channels: 64
+  ch_ratio: 2
+  num_stages: 10
+  inflate_stages: [5, 8]
+  down_stages: [5, 8]
+  data_bn_type: 'VC'
+  adaptive: True
+
+  # [V5核心参数]
+  num_hyperedges: 16          # 总超边数（5个静态手指边 + 11个动态边）
+  use_physical: True          # 启用物理感知超图
+  num_static_edges: 5         # 静态物理先验边数（5=手指，7=手指+手腕+手掌）
+  init_alpha: 0.5             # 动态/静态分支初始融合权重
+  use_virtual_conn: True      # 启用超图虚拟连接
+
+  # 其他参数
+  k_neighbors: 4              # Top-K邻居数（兼容参数，实际使用Softmax）
+  pretrained: None
+
+# 3. Processor
+processor: processor.recognition.FT_Processor
+
+# 4. 数据加载
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: True                  # [关键] 开启Bone模式
+  vel: False
+  window_size: 180            # 长窗口
+  normalization: False        # [V5关键] 关闭归一化，保留Bone向量的原始物理幅度
+  random_choose: True
+  random_move: False          # Bone流不需要平移增强
+  random_shift: True
+  random_rot: True            # 旋转增强对Bone流有效
+  shear_amplitude: 0.5
+  temperal_padding_ratio: 6
+  repeat: 5                   # 数据重复采样，增加训练迭代
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: True
+  vel: False
+  window_size: 180
+  normalization: False        # [关键] 测试集也关闭归一化
+  debug: False
+  use_mmap: True
+  # mean_map 和 std_map 会由 Processor 自动注入
+
+# 5. 优化器 (使用SGD以求稳定)
+optimizer: SGD
+base_lr: 0.05                 # SGD学习率
+weight_decay: 0.0005          # 权重衰减
+nesterov: True
+grad_clip_norm: 1.0           # 梯度裁剪
+
+# 学习率调度
+lr_decay_rate: 0.1
+step: [70, 100]               # 在70和100 epoch降低学习率
+warm_up_epoch: 5              # 前5个epoch warmup
+num_epoch: 150
+
+# 6. [V5核心] Knowledge Distillation
+teacher_weights: ./work_dir/SHREC/joint_v2/best_model.pt
+lambda_kd: 0.3                # KD损失权重 (0.3-0.5推荐)
+
+# 7. 正则化损失权重
+lambda_entropy: 0.001         # 熵正则化（软稀疏性）
+lambda_ortho: 0.1             # 正交性损失
+lambda_sparsity: 0.0          # 不使用L1稀疏损失（已被熵损失替代）
+
+# 8. 硬件与Batch
+device: [0]                   # GPU设备
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+use_gpu: True
+
+# 9. 损失函数
+loss: torch.nn.CrossEntropyLoss
+
+# 10. 日志与保存
+save_log: True
+print_log: True
+pavi_log: False
+
+log_interval: 100             # 每100步打印日志
+save_interval: 5              # 每5个epoch保存模型
+eval_interval: 5              # 每5个epoch评估
+
+save_result: True
+show_topk: [1, 5]             # 显示Top-1和Top-5准确率
+
+# 11. 其他
+start_epoch: 0
+debug: False
+
+# ==============================================================================
+# 使用说明
+# ==============================================================================
+#
+# 训练命令：
+# python main.py --config config/bone_v5_kd.yaml --phase train --device 0
+#
+# 测试命令：
+# python main.py --config config/bone_v5_kd.yaml --phase test --device 0 \
+#     --weights ./work_dir/SHREC/bone_v5_kd/best_model.pt
+#
+# 关键参数调优建议：
+# 1. 如果过拟合：增加 weight_decay: 0.001, drop_out: 0.25
+# 2. 如果Top1 < V2基线：增加 lambda_kd: 0.5
+# 3. 如果初期loss过大：降低 lambda_entropy: 0.0005, lambda_ortho: 0.05
+# 4. 如果需要更强的物理先验：设置 num_static_edges: 7 (包含手腕和手掌)
+#
+# 预期性能：
+# - Top1准确率: 90.0%+ (相比V2的88.5%提升1.5%)
+# - 训练时间: ~1.5h/epoch (双DataLoader略慢于单流)
+# - 推理速度: 45ms (只使用Student模型)
+# ==============================================================================

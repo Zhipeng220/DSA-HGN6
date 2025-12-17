@@ -1,0 +1,80 @@
+work_dir: ./work_dir/SHREC/joint_v2
+
+# [FIX] 将 feeder 替换为 train_feeder 和 test_feeder
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: False
+  vel: False
+  window_size: 180
+  normalization: True
+  random_choose: False
+  random_move: False
+  random_shift: False
+  random_rot: False
+  shear_amplitude: 0.5
+  temperal_padding_ratio: 6
+  repeat: 5
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: False
+  vel: False
+  window_size: 180
+  normalization: True
+  debug: False
+  use_mmap: True
+
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  num_class: 14
+  num_point: 22
+  num_person: 1
+  drop_out: 0.0
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  base_channels: 64
+  num_stages: 10
+  adaptive: True
+  num_hyperedges: 16
+  use_virtual_conn: True
+
+phase: train
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+use_gpu: True
+
+optimizer: SGD
+base_lr: 0.05
+weight_decay: 0.0005
+nesterov: True
+
+step: [30, 50,80]
+warm_up_epoch: 5
+num_epoch: 150
+
+loss: torch.nn.CrossEntropyLoss
+
+save_log: True
+print_log: True
+pavi_log: False
+log_interval: 100
+save_interval: 1
+eval_interval: 1
+save_result: True
+show_topk: [1, 5]
+
+start_epoch: 0
+debug: False

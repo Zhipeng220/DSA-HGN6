@@ -1,0 +1,87 @@
+work_dir: ./work_dir/SHREC/bone.yaml
+
+# 1. 训练流设置
+stream: bone.yaml
+
+# 2. 模型定义
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  base_channels: 64
+  ch_ratio: 2
+  num_stages: 10
+  inflate_stages: [5, 8]
+  down_stages: [5, 8]
+  data_bn_type: 'VC'
+  num_person: 1
+  pretrained: None
+  num_class: 14
+  num_point: 22
+  drop_out: 0.0
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  num_hyperedges: 16
+  k_neighbors: 4       # Top-K 邻居数
+  adaptive: true
+  use_virtual_conn: True
+
+# 3. 数据加载
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: True           # 开启 Bone 模式
+  vel: False
+  window_size: 180     # 长窗口
+  normalization: False # 建议先尝试关闭，保留原始物理幅度
+  random_choose: True
+  random_move: False   # Bone 流通常不需要平移增强
+  random_shift: True
+  repeat: 5            # 数据重复采样，增加每个 Epoch 的迭代次数
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: True
+  vel: False
+  window_size: 180
+  normalization: False
+  debug: False
+  use_mmap: True
+
+# 4. 优化器 (改为 SGD 以求稳定)
+optimizer: SGD
+base_lr: 0.05          # SGD 的学习率通常比 AdamW 大，0.01 是个安全的起点
+weight_decay: 0.0005    # 增加权重衰减
+nesterov: True
+grad_clip_norm: 1.0    # 梯度裁剪
+
+# 学习率调度
+lr_decay_rate: 0.1
+step: [70, 100]
+warm_up_epoch: 5
+num_epoch: 150
+
+# 5. 硬件与 Batch
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+
+# 6. 损失函数
+loss: torch.nn.CrossEntropyLoss
+
+# 7. 自定义损失权重
+lambda_sparsity: 0.00  # Top-K 机制不需要 L1 稀疏损失
+lambda_ortho: 0.1     # 降低正交损失权重，避免初期 loss 过大
+
+log_interval: 100
+save_interval: 5
+eval_interval: 5

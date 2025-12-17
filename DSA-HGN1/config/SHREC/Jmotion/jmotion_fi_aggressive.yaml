@@ -1,0 +1,86 @@
+# 1. 基础设置
+work_dir: ./work_dir/SHREC/jmotion_aggressive_finetune
+stream: jmotion
+
+# 2. 权重加载 (建议用 92.26% 的模型继续魔改)
+weights: ./work_dir/SHREC/jmotion_finetune/epoch025_acc92.26_model.pt
+
+# 3. 训练参数
+phase: train
+start_epoch: 0
+num_epoch: 50
+base_lr: 0.002         # 🔴 进一步降低 LR，在极小范围内精修
+step: [15, 35]
+warm_up_epoch: 0
+
+# 4. 正则化 (关键修改！)
+# 只有把 loss_ent 压下去，Jmotion 才能突破瓶颈
+lambda_entropy: 0.2    # 🔴 从 0.05 暴增到 0.2，强迫熵下降
+lambda_ortho: 0.1
+
+
+# 5. 模型定义
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  base_channels: 64
+  ch_ratio: 2
+  num_stages: 10
+  inflate_stages: [5, 8]
+  down_stages: [5, 8]
+  data_bn_type: 'VC'
+  num_person: 1
+  pretrained: None
+  num_class: 14
+  num_point: 22
+  drop_out: 0.5        # 🔴 直接拉满到 0.5 (类似 VGG/ResNet 的全连接层配置)
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  num_hyperedges: 16
+  k_neighbors: 4
+  adaptive: true
+  use_virtual_conn: True
+
+# 6. 数据加载 (保持不变)
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: False
+  vel: True
+  window_size: 180
+  normalization: False
+  random_choose: True
+  random_move: False
+  random_shift: True
+  repeat: 5
+  debug: False
+  use_mmap: True
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: False
+  vel: True
+  window_size: 180
+  normalization: False
+  debug: False
+  use_mmap: True
+
+# 7. 优化器
+optimizer: SGD
+weight_decay: 0.002    # 🔴 从 0.0005 提至 0.002，强力约束参数范数
+nesterov: True
+grad_clip_norm: 1.0
+lr_decay_rate: 0.1
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+loss: torch.nn.CrossEntropyLoss
+log_interval: 100
+save_interval: 5
+eval_interval: 1

@@ -1,0 +1,85 @@
+# 1. 基础设置
+work_dir: ./work_dir/SHREC/joint_finetune  # ⚠️ 修改目录，保留原日志
+stream: joint
+
+# 2. 关键：加载最佳权重
+# 请确保路径与您本地实际路径一致
+weights: ./work_dir/SHREC/joint/epoch015_acc92.74_model.pt
+
+# 3. 训练参数调整 (微调模式)
+phase: train
+start_epoch: 16         # 重新开始计数，方便设置 LR schedule
+num_epoch: 50          # 只需要少量轮次即可收敛
+base_lr: 0.005         # 🔴 降为原来的 1/10 (0.05 -> 0.005)
+step: [25, 40]         # 在第 15 和 30 轮进一步衰减
+warm_up_epoch: 0       # 微调不需要预热
+
+# 4. 正则化增强 (防止过拟合)
+lambda_entropy: 0.02   # 🔴 增大权重 (0.001 -> 0.02)，强迫超图稀疏化
+lambda_ortho: 0.1      # 保持不变
+
+# 5. 模型定义 (必须与原配置完全一致)
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  base_channels: 64
+  ch_ratio: 2
+  num_stages: 10
+  inflate_stages: [5, 8]
+  down_stages: [5, 8]
+  data_bn_type: 'VC'
+  num_person: 1
+  pretrained: None
+  num_class: 14
+  num_point: 22
+  drop_out: 0.0
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  num_hyperedges: 16
+  k_neighbors: 4
+  adaptive: true
+  use_virtual_conn: True
+
+# 6. 数据加载 (保持一致)
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: False
+  vel: False
+  window_size: 180
+  normalization: False
+  random_choose: True
+  random_move: False
+  random_shift: True
+  repeat: 5
+  debug: False
+  use_mmap: True
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: False
+  vel: False
+  window_size: 180
+  normalization: False
+  debug: False
+  use_mmap: True
+
+# 7. 优化器
+optimizer: SGD
+weight_decay: 0.0005
+nesterov: True
+grad_clip_norm: 1.0
+lr_decay_rate: 0.1
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+loss: torch.nn.CrossEntropyLoss
+log_interval: 100
+save_interval: 1
+eval_interval: 1       # 微调时每轮都验证，以免错过峰值

@@ -1,0 +1,81 @@
+# config/SHREC/fusion/hafm_fusion.yaml
+
+work_dir: ./work_dir/SHREC/hyperhand_hafm_fusion
+
+weights: null
+
+model: net.dsa_hgn.MultiStreamDSA_HGN
+model_args:
+  num_class: 14
+  streams: ['joint', 'bone.yaml', 'joint_motion', 'bone_motion']
+
+  model_args:
+    in_channels: 3
+    base_channels: 64
+    ch_ratio: 2
+    num_stages: 10
+    inflate_stages: [5, 8]
+    down_stages: [5, 8]
+    data_bn_type: 'VC'
+    num_person: 1
+    num_point: 22
+    drop_out: 0.6            # 保持高 Dropout 防止过拟合
+    graph: graph.shrec.Graph
+    graph_args:
+      labeling_mode: 'spatial'
+    num_hyperedges: 16       # 动态超图
+    adaptive: True
+
+# 3. 数据加载器
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+# 4. 训练数据 (Joint 输入，模型内部计算其他流)
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: False              # 设为 False，只读取原始坐标，由模型内部或 Feeder 扩展
+  vel: False
+
+  # SOTA 策略参数
+  window_size: 180         # 长窗口
+  normalization: False     # 关闭归一化，保留物理幅值
+  random_choose: True
+  random_move: False
+  random_shift: False
+  random_rot: True
+  shear_amplitude: 0.5
+  temperal_padding_ratio: 6
+
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: False
+  vel: False
+  window_size: 180
+  normalization: False
+  debug: False
+  use_mmap: True
+
+# 5. 优化器 (Paper A 推荐 AdamW)
+optimizer: AdamW
+base_lr: 0.0002
+weight_decay: 0.05
+step: [70, 100, 120]       # 模仿 SOTA 的长周期衰减
+num_epoch: 150             # 延长训练时间以训练融合层
+
+# 6. 其他配置
+device: [0]
+batch_size: 16             # ⚠️ 融合模型显存占用大，建议降低 Batch Size (32 -> 16)
+test_batch_size: 16
+nesterov: True
+grad_clip_norm: 1.0        # 梯度裁剪保护 HAFM
+
+loss: torch.nn.CrossEntropyLoss
+loss_args:
+  label_smoothing: 0.1

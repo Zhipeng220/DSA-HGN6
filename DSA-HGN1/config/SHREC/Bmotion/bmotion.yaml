@@ -1,0 +1,91 @@
+# work_dir: ./work_dir/SHREC/hyperhand_bmotion_final_optimized
+
+# 1. 训练流设置
+stream: bmotion
+
+# 2. 模型定义 (保持与 Bone 流一致)
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  base_channels: 64
+  ch_ratio: 2
+  num_stages: 10
+  inflate_stages: [5, 8]
+  down_stages: [5, 8]
+  data_bn_type: 'VC'
+  num_person: 1
+  pretrained: None
+  num_class: 14
+  num_point: 22
+  drop_out: 0.0
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  num_hyperedges: 16
+  k_neighbors: 4
+  adaptive: true
+  use_virtual_conn: True
+
+# 3. 数据加载
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  # 🔴 B-Motion 流核心设置 (Bone + Velocity)
+  bone: True           # ✅ 开启 Bone
+  vel: True            # ✅ 开启 Velocity (计算骨骼速度)
+
+  window_size: 180
+  normalization: False # 保持与 Bone 流一致
+  random_choose: True
+  random_move: False
+  random_shift: True
+  repeat: 5
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  # 🔴 保持一致
+  bone: True
+  vel: True
+
+  window_size: 180
+  normalization: False
+  debug: False
+  use_mmap: True
+
+# 4. 优化器 (关键策略：复用 Bone 流的 SGD )
+optimizer: SGD
+base_lr: 0.05          # 保持高学习率
+weight_decay: 0.0005   # 权重衰减
+nesterov: True
+grad_clip_norm: 1.0
+
+# 学习率调度 (关键策略：激进衰减 )
+lr_decay_rate: 0.1
+step: [30, 50]         # 30 和 50 epoch 衰减，快速收敛
+warm_up_epoch: 5
+num_epoch: 60
+
+# 5. 硬件与 Batch
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+
+# 6. 损失函数
+loss: torch.nn.CrossEntropyLoss
+
+# 7. 正则化参数
+lambda_entropy: 0.001
+lambda_ortho: 0.1
+
+log_interval: 100
+save_interval: 5
+eval_interval: 5

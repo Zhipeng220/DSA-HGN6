@@ -1,0 +1,92 @@
+work_dir: ./work_dir/SHREC/bone_motion_v2
+
+# Bone Motion Stream Configuration
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: True
+  vel: True
+  window_size: 180
+  normalization: False
+  random_choose: False
+  random_move: False
+  random_shift: False
+  random_rot: False
+  shear_amplitude: 0.5
+  temperal_padding_ratio: 6
+  repeat: 5
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: True      # 测试集也使用骨骼运动流
+  vel: True
+  window_size: 180
+  normalization: False
+  debug: False
+  use_mmap: True
+
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  num_class: 14
+  num_point: 22
+  num_person: 1
+  drop_out: 0.0
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  base_channels: 64
+  num_stages: 10
+  adaptive: True
+  num_hyperedges: 16
+  use_virtual_conn: True
+  use_physical: False
+
+phase: train
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+use_gpu: True
+
+optimizer: SGD
+base_lr: 0.05
+weight_decay: 0.0005
+nesterov: True
+
+num_epoch: 60  # 150 → 60 (减少60%训练时间)
+step: [25, 35, 45]  # 更细粒度的学习率衰减
+warm_up_epoch: 5
+
+loss: torch.nn.CrossEntropyLoss
+
+# Knowledge Distillation (可选)
+# 如果有预训练的bone或joint_motion流模型，可以用来指导bone_motion流训练
+# teacher_weights: ./work_dir/SHREC/bone_v2/best_model.pt
+# lambda_kd: 0.3
+
+# Regularization
+lambda_entropy: 0.001
+lambda_ortho: 0.1
+grad_clip_norm: 1.0
+
+save_log: True
+print_log: True
+pavi_log: False
+log_interval: 100
+save_interval: 1
+eval_interval: 1
+save_result: True
+show_topk: [1, 5]
+
+start_epoch: 0
+debug: False
+stream: bone_motion

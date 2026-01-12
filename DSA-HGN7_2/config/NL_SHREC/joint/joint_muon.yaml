@@ -1,0 +1,100 @@
+# =============================================================================
+# Muon Optimizer Experiment Configuration (Joint Stream)
+# Based on Nested Learning Paper / DSA-HGN6
+# =============================================================================
+
+work_dir: ./work_dir/SHREC/joint_muon_v1
+
+# Data Feeder Configuration
+train_feeder: feeder.feeder_egogesture.Feeder
+test_feeder: feeder.feeder_egogesture.Feeder
+
+train_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/train_label.pkl
+  split: train
+  bone: False            # Joint 流关闭 Bone
+  vel: False             # Joint 流关闭 Velocity
+  window_size: 180
+  normalization: True    # [重要] Joint 流通常需要归一化
+  random_choose: False    # 建议开启增强以提升性能
+  random_move: False      # 建议开启增强
+  random_shift: False     # 建议开启增强
+  random_rot: False       # 建议开启增强
+  shear_amplitude: 0.5
+  temperal_padding_ratio: 6
+  repeat: 5
+  debug: False
+  use_mmap: True
+
+test_feeder_args:
+  data_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_data.npy
+  label_path: /Users/gzp/Desktop/exp/DATA/SHREC2017_data/val_label.pkl
+  split: test
+  bone: False
+  vel: False
+  window_size: 180
+  normalization: True    # 测试集也要归一化
+  debug: False
+  use_mmap: True
+
+# Model Configuration
+model: net.dsa_hgn.Model
+model_args:
+  in_channels: 3
+  num_class: 14
+  num_point: 22
+  num_person: 1
+  drop_out: 0.0
+  graph: graph.shrec.Graph
+  graph_args:
+    labeling_mode: 'spatial'
+  base_channels: 64
+  num_stages: 10
+  adaptive: True
+  num_hyperedges: 16
+  use_virtual_conn: True
+  use_physical: True     # [V6] 开启物理先验
+
+# Training Parameters
+phase: train
+device: [0]
+batch_size: 32
+test_batch_size: 32
+num_worker: 4
+use_gpu: True
+
+# [OPTIMIZER CHANGE] 使用 Deep Momentum (Muon)
+optimizer: Muon
+base_lr: 0.002            # Muon 推荐初始学习率
+weight_decay: 0.0005
+nesterov: True
+
+# Learning Rate Schedule
+step: [50, 80]
+warm_up_epoch: 5
+num_epoch: 150
+
+loss: torch.nn.CrossEntropyLoss
+
+# [NOTE] Joint 流不使用 Knowledge Distillation (KD)
+# 它是基础流，通常作为 Teacher
+
+# Regularization (Nested Learning / Paper A Settings)
+lambda_entropy: 0.001
+lambda_ortho: 0.1
+grad_clip_norm: 1.0
+
+# Logging
+save_log: True
+print_log: True
+pavi_log: False
+log_interval: 100
+save_interval: 1
+eval_interval: 1
+save_result: True
+show_topk: [1, 5]
+
+start_epoch: 0
+debug: False
+stream: joint
